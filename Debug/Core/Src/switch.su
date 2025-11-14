@@ -1,0 +1,2 @@
+../Core/Src/switch.c:18:9:GetKeyStates	16	static
+../Core/Src/switch.c:79:6:DetectSequence	16	static

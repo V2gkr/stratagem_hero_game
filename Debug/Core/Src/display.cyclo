@@ -1,0 +1,3 @@
+../Core/Src/display.c:18:6:DisplayConfigCustomChars	1
+../Core/Src/display.c:22:6:ClearStratagemOnDisplay	1
+../Core/Src/display.c:26:6:WriteNextSequenceArrow	1

@@ -1,0 +1,9 @@
+../Core/Src/lcd.c:32:6:lcd_init	16	static
+../Core/Src/lcd.c:61:6:lcd_send_cmd	32	static
+../Core/Src/lcd.c:74:6:lcd_send_data	32	static
+../Core/Src/lcd.c:87:6:lcd_set_line	24	static
+../Core/Src/lcd.c:107:6:lcd_clear	8	static
+../Core/Src/lcd.c:112:6:lcd_send_string	16	static
+../Core/Src/lcd.c:117:6:lcd_update_buffer	16	static
+../Core/Src/lcd.c:122:6:lcd_update_screen	8	static
+../Core/Src/lcd.c:133:6:lcd_set_custom_symbol	24	static
