@@ -15,6 +15,8 @@ void lcd_clear (void);
 /** @brief: updates a buffer with our data */
 void lcd_update_buffer(uint8_t * data , uint8_t size,uint8_t offset);
 
+void lcd_clear_buffer(void);
+
 /** @brief: sends full data to the lcd to update whole screen */
 void lcd_update_screen(void);
 

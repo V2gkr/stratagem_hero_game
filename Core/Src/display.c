@@ -26,3 +26,9 @@ void ClearStratagemOnDisplay(void){
 void WriteNextSequenceArrow(uint8_t arrow,uint8_t number){
   lcd_update_buffer(&arrow,1,20+STRATAGEM_COL_START+number);
 }
+
+void DisplayWaitForStartScreen(void){
+  lcd_clear_buffer();
+  lcd_update_buffer("  Press any button  ",20,0);
+  lcd_update_buffer("  to start the game ",20,20);
+}

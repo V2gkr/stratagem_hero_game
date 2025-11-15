@@ -28,5 +28,9 @@ void ClearStratagemOnDisplay(void);
 
 void WriteNextSequenceArrow(uint8_t arrow,uint8_t number);
 
+
+void DisplayWaitForStartScreen(void);
+
+
 #endif /* INC_DISPLAY_H_*/
 

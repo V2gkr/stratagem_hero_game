@@ -52,9 +52,7 @@ void lcd_init (void){
 	lcd_send_cmd (0x06); //Entry mode set --> I/D = 1 (increment cursor) & S = 0 (no shift)
 	HAL_Delay(5);
 	lcd_send_cmd (0x0C); //Display on/off control --> D = 1, C and B = 0. (Cursor and blink, last two bits)
-	for(uint8_t i=0;i<80;i++){
-		LCD_80buf[i]=32;
-	}
+
 }
 
 /** @brief: sends command to an lcd*/
@@ -116,6 +114,10 @@ void lcd_send_string (char *str,uint8_t size){
 /** @brief: updates a buffer with our data */
 void lcd_update_buffer(uint8_t * data , uint8_t size,uint8_t offset){
 	memcpy(LCD_80buf+offset,data,size);
+}
+
+void lcd_clear_buffer(void){
+  memset(LCD_80buf,' ',80);
 }
 
 /** @brief: sends full data to the lcd to update whole screen */

@@ -16,15 +16,36 @@ typedef enum{
 
 typedef enum{
   START_COUNTDOWN=0,
-  ACTIVE_ROUNG=1,
+  ACTIVE_ROUND=1,
   ROUND_COMPLETE=2
 }GameSubState;
 
 typedef enum{
-  ANY_BUTTON_PRESSED=0,
-  CTDOWN_TIMEOUT=1,
-  GAME_TIMEOUT=2,
-  IDLE_TIMEOUT=3,
+  NO_EVENT=0,
+  ANY_BUTTON_PRESSED=1,
+  CTDOWN_TIMEOUT=2,
+  GAME_TIMEOUT=3,
+  IDLE_TIMEOUT=4,
 }GameEvents;
+
+typedef struct{
+  GameEvent timeout_type;
+  uint8_t is_active;
+  uint32_t start_timestamp;
+  const uint32_t timespan;
+}TimeoutDataStruct;
+
+
+void PlaceEventInQueue(GameEvents event);
+
+GameEvents GetLastEvent(void);
+
+void AppStateProcessor(void);
+
+void GameProcessor(GameEvents last_event);
+
+void StartTimeout(GameEvents TimeoutType);
+
+void TimeoutProcessor(void);
 
 #endif /* INC_GAME_LOGIC_H_ */
