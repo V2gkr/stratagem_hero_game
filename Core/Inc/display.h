@@ -26,11 +26,15 @@ void DisplayConfigCustomChars(void);
 void ClearStratagemOnDisplay(void);
 
 
-void WriteNextSequenceArrow(uint8_t arrow,uint8_t number);
+void DisplayNextSequenceArrow(uint8_t arrow,uint8_t number);
 
 
 void DisplayWaitForStartScreen(void);
 
+void DisplayStartCountDownScreen(uint8_t time_s);
 
+void DisplayAfterRoundInfo(uint8_t time_left,uint16_t points);
+
+void DisplayFinalRoundInfo(uint16_t points);
 #endif /* INC_DISPLAY_H_*/
 

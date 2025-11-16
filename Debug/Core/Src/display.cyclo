@@ -1,3 +1,7 @@
-../Core/Src/display.c:18:6:DisplayConfigCustomChars	1
-../Core/Src/display.c:22:6:ClearStratagemOnDisplay	1
-../Core/Src/display.c:26:6:WriteNextSequenceArrow	1
+../Core/Src/display.c:19:6:DisplayConfigCustomChars	1
+../Core/Src/display.c:23:6:ClearStratagemOnDisplay	1
+../Core/Src/display.c:27:6:DisplayNextSequenceArrow	1
+../Core/Src/display.c:31:6:DisplayWaitForStartScreen	1
+../Core/Src/display.c:37:6:DisplayStartCountDownScreen	1
+../Core/Src/display.c:45:6:DisplayAfterRoundInfo	1
+../Core/Src/display.c:55:6:DisplayFinalRoundInfo	1

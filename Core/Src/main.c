@@ -24,6 +24,7 @@
 #include "lcd.h"
 #include "switch.h"
 #include "display.h"
+#include "game_logic.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -82,20 +83,6 @@ uint8_t increment;
 
 
 
-uint8_t ParseKeysToLcdArrows(uint8_t result){
-  switch(result){
-    case KEY_UP_Pin:
-      return ARROW_UP;
-    case KEY_LEFT_Pin:
-      return ARROW_LEFT;
-    case KEY_DOWN_Pin:
-      return ARROW_DOWN;
-    case KEY_RIGHT_Pin:
-      return ARROW_RIGHT;
-    default:
-      return ' ';
-  }
-}
 /* USER CODE END 0 */
 
 /**
@@ -145,22 +132,26 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    //this stuff had to be executed every 2ms , press detection is made at
+    //this stuff had to be executed every +-2ms , press detection is made at
     result=GetKeyStates();
     if(result!=0){
-      if(increment==32){
-        increment=0;
-        received_sequence.sequence=0;
-        ClearStratagemOnDisplay();
-      }
-      received_sequence.sequence|=result<<increment;
-      uint8_t new_arrow=ParseKeysToLcdArrows(result);
-      WriteNextSequenceArrow(new_arrow,increment/4);
+      //uint8_t new_arrow=ParseKeysToLcdArrows(result);
+      PlaceEventInQueue(ANY_BUTTON_PRESSED);
+      ParseKeysToLcdArrows(result);
+//      if(increment==32){
+//        increment=0;
+//        received_sequence.sequence=0;
+//        ClearStratagemOnDisplay();
+//      }
+//      received_sequence.sequence|=result<<increment;
+
+//      WriteNextSequenceArrow(new_arrow,increment/4);
       //lcd_update_buffer(&new_arrow,1,20+(increment/4));
-      increment+=4;
+//      increment+=4;
     }
 
     HAL_Delay(2);
+    AppStateProcessor();
     if((HAL_GetTick()-reftick)>300){
       reftick=HAL_GetTick();
       lcd_update_screen();

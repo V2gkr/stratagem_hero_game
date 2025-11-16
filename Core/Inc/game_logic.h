@@ -8,6 +8,8 @@
 #ifndef INC_GAME_LOGIC_H_
 #define INC_GAME_LOGIC_H_
 
+#include "stdint.h"
+
 typedef enum{
   WAIT_FOR_START=0,
   GAME_IS_ACTIVE=1,
@@ -29,12 +31,25 @@ typedef enum{
 }GameEvents;
 
 typedef struct{
-  GameEvent timeout_type;
+  GameEvents timeout_type;
   uint8_t is_active;
   uint32_t start_timestamp;
   const uint32_t timespan;
 }TimeoutDataStruct;
 
+typedef union{
+  uint32_t sequence;
+  struct{
+    uint32_t key1:4;
+    uint32_t key2:4;
+    uint32_t key3:4;
+    uint32_t key4:4;
+    uint32_t key5:4;
+    uint32_t key6:4;
+    uint32_t key7:4;
+    uint32_t key8:4;
+  }halfbyte_element;
+}fourBitSequenceStruct;
 
 void PlaceEventInQueue(GameEvents event);
 
@@ -47,5 +62,7 @@ void GameProcessor(GameEvents last_event);
 void StartTimeout(GameEvents TimeoutType);
 
 void TimeoutProcessor(void);
+
+void ParseKeysToLcdArrows(uint8_t result);
 
 #endif /* INC_GAME_LOGIC_H_ */
