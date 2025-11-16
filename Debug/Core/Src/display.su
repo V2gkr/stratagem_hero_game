@@ -1,7 +1,8 @@
-../Core/Src/display.c:19:6:DisplayConfigCustomChars	8	static
-../Core/Src/display.c:23:6:ClearStratagemOnDisplay	8	static
-../Core/Src/display.c:27:6:DisplayNextSequenceArrow	16	static
-../Core/Src/display.c:31:6:DisplayWaitForStartScreen	8	static
-../Core/Src/display.c:37:6:DisplayStartCountDownScreen	24	static
-../Core/Src/display.c:45:6:DisplayAfterRoundInfo	40	static
-../Core/Src/display.c:55:6:DisplayFinalRoundInfo	40	static
+../Core/Src/display.c:20:6:DisplayConfigCustomChars	8	static
+../Core/Src/display.c:24:6:ClearStratagemOnDisplay	8	static
+../Core/Src/display.c:28:6:DisplayNextSequenceArrow	16	static
+../Core/Src/display.c:32:6:DisplayWaitForStartScreen	8	static
+../Core/Src/display.c:38:6:DisplayStartCountDownScreen	32	static
+../Core/Src/display.c:46:6:DisplayActiveGameScreen	40	static
+../Core/Src/display.c:56:6:DisplayAfterRoundInfo	40	static
+../Core/Src/display.c:66:6:DisplayFinalRoundInfo	40	static

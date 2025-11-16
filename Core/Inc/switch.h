@@ -12,7 +12,7 @@
 
 #define KEY_ALL   (KEY_UP_Pin|KEY_LEFT_Pin|KEY_RIGHT_Pin|KEY_DOWN_Pin)
 #define KEY_POS_STEP  4
-#define PRESS_DETECT_TIME   10
+#define PRESS_DETECT_TIME   20
 
 typedef struct{
   uint8_t press_timer;

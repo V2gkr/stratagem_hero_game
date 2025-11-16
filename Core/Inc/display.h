@@ -31,6 +31,8 @@ void DisplayNextSequenceArrow(uint8_t arrow,uint8_t number);
 
 void DisplayWaitForStartScreen(void);
 
+void DisplayActiveGameScreen(uint32_t sequence);
+
 void DisplayStartCountDownScreen(uint8_t time_s);
 
 void DisplayAfterRoundInfo(uint8_t time_left,uint16_t points);

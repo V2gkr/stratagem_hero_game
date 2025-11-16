@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -28,6 +29,7 @@
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 
 
@@ -57,6 +59,30 @@ I2C_HandleTypeDef hi2c1;
 
 UART_HandleTypeDef hlpuart1;
 
+/* Definitions for GameTask */
+osThreadId_t GameTaskHandle;
+uint32_t GameTaskBuffer[ 128 ];
+osStaticThreadDef_t GameTaskControlBlock;
+const osThreadAttr_t GameTask_attributes = {
+  .name = "GameTask",
+  .stack_mem = &GameTaskBuffer[0],
+  .stack_size = sizeof(GameTaskBuffer),
+  .cb_mem = &GameTaskControlBlock,
+  .cb_size = sizeof(GameTaskControlBlock),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for DisplayTask */
+osThreadId_t DisplayTaskHandle;
+uint32_t DisplayTaskBuffer[ 128 ];
+osStaticThreadDef_t DisplayTaskControlBlock;
+const osThreadAttr_t DisplayTask_attributes = {
+  .name = "DisplayTask",
+  .stack_mem = &DisplayTaskBuffer[0],
+  .stack_size = sizeof(DisplayTaskBuffer),
+  .cb_mem = &DisplayTaskControlBlock,
+  .cb_size = sizeof(DisplayTaskControlBlock),
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* USER CODE BEGIN PV */
 
 fourBitSequenceStruct REVIVE_STRATAGEM={.halfbyte_element.key1=KEY_UP_Pin,
@@ -71,6 +97,9 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_LPUART1_UART_Init(void);
 static void MX_I2C1_Init(void);
+void StartGameTask(void *argument);
+void StartDisplayTask(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -93,7 +122,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  uint32_t reftick=0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -118,6 +146,11 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   REVIVE_STRATAGEM.halfbyte_element.key1=KEY_UP_Pin;
+  REVIVE_STRATAGEM.halfbyte_element.key2=KEY_DOWN_Pin;
+  REVIVE_STRATAGEM.halfbyte_element.key3=KEY_RIGHT_Pin;
+  REVIVE_STRATAGEM.halfbyte_element.key4=KEY_LEFT_Pin;
+  REVIVE_STRATAGEM.halfbyte_element.key5=KEY_UP_Pin;
+
   HAL_Delay(500);
   lcd_init();
   HAL_Delay(500);
@@ -128,34 +161,50 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of GameTask */
+  GameTaskHandle = osThreadNew(StartGameTask, NULL, &GameTask_attributes);
+
+  /* creation of DisplayTask */
+  DisplayTaskHandle = osThreadNew(StartDisplayTask, NULL, &DisplayTask_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    //this stuff had to be executed every +-2ms , press detection is made at
-    result=GetKeyStates();
-    if(result!=0){
-      //uint8_t new_arrow=ParseKeysToLcdArrows(result);
-      PlaceEventInQueue(ANY_BUTTON_PRESSED);
-      ParseKeysToLcdArrows(result);
-//      if(increment==32){
-//        increment=0;
-//        received_sequence.sequence=0;
-//        ClearStratagemOnDisplay();
-//      }
-//      received_sequence.sequence|=result<<increment;
 
-//      WriteNextSequenceArrow(new_arrow,increment/4);
-      //lcd_update_buffer(&new_arrow,1,20+(increment/4));
-//      increment+=4;
-    }
-
-    HAL_Delay(2);
-    AppStateProcessor();
-    if((HAL_GetTick()-reftick)>300){
-      reftick=HAL_GetTick();
-      lcd_update_screen();
-    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -345,6 +394,50 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartGameTask */
+/**
+  * @brief  Function implementing the GameTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartGameTask */
+void StartGameTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    result=GetKeyStates();
+    if(result!=0){
+      //uint8_t new_arrow=ParseKeysToLcdArrows(result);
+      PlaceEventInQueue(ANY_BUTTON_PRESSED);
+      UpdateLastPressedKey(result);
+    }
+    AppStateProcessor();
+    osDelay(2);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartDisplayTask */
+/**
+* @brief Function implementing the DisplayTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartDisplayTask */
+void StartDisplayTask(void *argument)
+{
+  /* USER CODE BEGIN StartDisplayTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    lcd_update_screen();
+    osDelay(30);
+  }
+  /* USER CODE END StartDisplayTask */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

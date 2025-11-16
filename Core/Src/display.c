@@ -8,6 +8,7 @@
 #include "lcd.h"
 #include "stdio.h"
 #include "display.h"
+#include "game_logic.h"
 
 uint8_t arrow_high[]={0x00,0x04,0xe0,0x15,0x4,0x4,0x4,0x4};
 uint8_t arrow_left[]={0x00,0x4,0x4,0x4,0x4,0x15,0xe0,0x04};
@@ -37,9 +38,19 @@ void DisplayWaitForStartScreen(void){
 void DisplayStartCountDownScreen(uint8_t time_s){
   lcd_clear_buffer();
   lcd_update_buffer("  Starting game in  ",20,0);
-  uint8_t buf[6];
-  sprintf(buf,"%d ...",time_s);
+  uint8_t buf[9];
+  sprintf(buf,"%d sec ",time_s);
   lcd_update_buffer(buf,6,26);
+}
+
+void DisplayActiveGameScreen(uint32_t sequence){
+  //lcd_clear_buffer();
+  lcd_update_buffer("Game started: ",14,0);
+  uint8_t act_sequence[8];
+  for(uint8_t i=0;i<=32;i++){
+    act_sequence[i]=ParseKeysToLcdArrows((sequence>>(i*4))&0xF);
+  }
+  lcd_update_buffer(&act_sequence,8,40+6);
 }
 
 void DisplayAfterRoundInfo(uint8_t time_left,uint16_t points){

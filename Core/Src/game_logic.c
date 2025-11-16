@@ -9,6 +9,7 @@
 #include "display.h"
 #include "stddef.h"
 #include "stdint.h"
+#include "lcd.h"
 #include "main.h"
 #define TIMEOUTS_COUNT      3
 #define STRATAGEM_PER_GAME  5
@@ -94,9 +95,10 @@ void AppStateProcessor(void){
 void GameProcessor(GameEvents last_event){
   switch(GameSubStateMachine){
     case START_COUNTDOWN:
+      DisplayStartCountDownScreen(1+(((Timeouts[0]->timespan+Timeouts[0]->start_timestamp-HAL_GetTick()))/1000));
       if(last_event==CTDOWN_TIMEOUT){
         GameSubStateMachine=ACTIVE_ROUND;
-        StartTimeout(GAME_TIMEOUT);
+        //StartTimeout(GAME_TIMEOUT);
         GameData.sequence_cursor=0;
         GameData.sequence_array_cursor=0;
         //prepare stratagem list
@@ -105,29 +107,27 @@ void GameProcessor(GameEvents last_event){
         GameData.stratagems[2].sequence=0x444;
         GameData.stratagems[3].sequence=0x888;
         GameData.stratagems[4].sequence=0x111;
+        lcd_clear_buffer();
       }
-      DisplayStartCountDownScreen(1+(((Timeouts[0]->timespan+Timeouts[0]->start_timestamp-HAL_GetTick()))/1000));
       //place event 3..2..1 and display it
       break;
     case ACTIVE_ROUND:
+      DisplayActiveGameScreen(GameData.stratagems[GameData.sequence_array_cursor].sequence);
       if(last_event==ANY_BUTTON_PRESSED){
-        uint8_t result=0;//0x1,0x2,0x4,0x8 only
-        if(result==((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)){
+        //uint8_t result=0;//0x1,0x2,0x4,0x8 only
+        if(GameData.last_pressed_button==((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)){
           //update stratagem
-          DisplayNextSequenceArrow(result,GameData.sequence_cursor/4);
-          GameData.input.sequence=result<<GameData.sequence_cursor;
+          uint8_t new_arrow=ParseKeysToLcdArrows(GameData.last_pressed_button);
+          DisplayNextSequenceArrow(new_arrow,GameData.sequence_cursor/4);
+          GameData.input.sequence=new_arrow<<GameData.sequence_cursor;
           GameData.sequence_cursor+=4;
           if(((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)==0x00){
-
-            if(GameData.sequence_array_cursor!=STRATAGEM_PER_GAME){
-              //single stratagem is complete
-              GameData.sequence_array_cursor++;   //increment cursor for next stratagem
-              GameData.sequence_cursor=0;         //clear cursor of each arrow in sequence
-              GameData.input.sequence=0;          //clear previous sequence
-              ClearStratagemOnDisplay();
-            }
-            else{
-              //all stratagems in round are completed
+            //single stratagem is complete
+            GameData.sequence_array_cursor++;   //increment cursor for next stratagem
+            GameData.sequence_cursor=0;         //clear cursor of each arrow in sequence
+            GameData.input.sequence=0;          //clear previous sequence
+            ClearStratagemOnDisplay();
+            if(GameData.sequence_array_cursor==STRATAGEM_PER_GAME){
               GameSubStateMachine=ROUND_COMPLETE; //change state
               DisplayAfterRoundInfo(0,0);            //update lcd
               StartTimeout(IDLE_TIMEOUT);         //
@@ -192,22 +192,21 @@ void TimeoutProcessor(void){
   }
 }
 
-void ParseKeysToLcdArrows(uint8_t result){
+uint8_t ParseKeysToLcdArrows(uint8_t result){
   switch(result){
     case KEY_UP_Pin:
-      GameData.last_pressed_button=ARROW_UP;
-      break;
+      return ARROW_UP;
     case KEY_LEFT_Pin:
-      GameData.last_pressed_button=ARROW_LEFT;
-      break;
+      return ARROW_LEFT;
     case KEY_DOWN_Pin:
-      GameData.last_pressed_button=ARROW_DOWN;
-      break;
+      return ARROW_DOWN;
     case KEY_RIGHT_Pin:
-      GameData.last_pressed_button=ARROW_RIGHT;
-      break;
+      return ARROW_RIGHT;
     default:
-      GameData.last_pressed_button=' ';
-      break;
+      return ' ';
   }
+}
+
+void UpdateLastPressedKey(uint8_t last_key){
+  GameData.last_pressed_button=last_key;
 }

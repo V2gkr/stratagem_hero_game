@@ -63,6 +63,7 @@ void StartTimeout(GameEvents TimeoutType);
 
 void TimeoutProcessor(void);
 
-void ParseKeysToLcdArrows(uint8_t result);
+uint8_t ParseKeysToLcdArrows(uint8_t result);
 
+void UpdateLastPressedKey(uint8_t last_key);
 #endif /* INC_GAME_LOGIC_H_ */
