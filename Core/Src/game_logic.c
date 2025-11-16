@@ -36,7 +36,11 @@ TimeoutDataStruct GameTimeout={.timeout_type=GAME_TIMEOUT,.timespan=10000,.is_ac
 TimeoutDataStruct IdleTimeout={.timeout_type=IDLE_TIMEOUT,.timespan=20000,.is_active=0};
 TimeoutDataStruct * Timeouts[]={&CtdownTimeout,&GameTimeout,&IdleTimeout};
 
-
+fourBitSequenceStruct REVIVE_STRATAGEM={.sequence=0x14281};//up 1 / down 8 / right 2 / left 4 / up 1
+fourBitSequenceStruct RESSUPLY_STRATAGEM={.sequence=0x2188};
+fourBitSequenceStruct LASER_CANNON_STRATAGEM={.sequence=0x41848};
+fourBitSequenceStruct ORBITAL_LASER_STRATAGEM={.sequence=0x82182};//right down up right down
+fourBitSequenceStruct HELLBOMB_STRATAGEM={.sequence=0x81281481};// up down left up down right up down
 
 void PlaceEventInQueue(GameEvents event){
 //  if(event_tail!=event_head){
@@ -98,15 +102,15 @@ void GameProcessor(GameEvents last_event){
       DisplayStartCountDownScreen(1+(((Timeouts[0]->timespan+Timeouts[0]->start_timestamp-HAL_GetTick()))/1000));
       if(last_event==CTDOWN_TIMEOUT){
         GameSubStateMachine=ACTIVE_ROUND;
-        //StartTimeout(GAME_TIMEOUT);
+        StartTimeout(GAME_TIMEOUT);
         GameData.sequence_cursor=0;
         GameData.sequence_array_cursor=0;
         //prepare stratagem list
-        GameData.stratagems[0].sequence=0x111;
-        GameData.stratagems[1].sequence=0x222;
-        GameData.stratagems[2].sequence=0x444;
-        GameData.stratagems[3].sequence=0x888;
-        GameData.stratagems[4].sequence=0x111;
+        GameData.stratagems[0].sequence=REVIVE_STRATAGEM.sequence;
+        GameData.stratagems[1].sequence=ORBITAL_LASER_STRATAGEM.sequence;
+        GameData.stratagems[2].sequence=HELLBOMB_STRATAGEM.sequence;
+        GameData.stratagems[3].sequence=LASER_CANNON_STRATAGEM.sequence;
+        GameData.stratagems[4].sequence=RESSUPLY_STRATAGEM.sequence;
         lcd_clear_buffer();
       }
       //place event 3..2..1 and display it

@@ -32,13 +32,6 @@
 typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 
-
-typedef enum{
-  KEY_STATE_IDLE=0,
-  KEY_STATE_INPUT=1
-}KeySequenceStates;
-
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -85,11 +78,6 @@ const osThreadAttr_t DisplayTask_attributes = {
 };
 /* USER CODE BEGIN PV */
 
-fourBitSequenceStruct REVIVE_STRATAGEM={.halfbyte_element.key1=KEY_UP_Pin,
-                                        .halfbyte_element.key2=KEY_DOWN_Pin,
-                                        .halfbyte_element.key3=KEY_RIGHT_Pin,
-                                        .halfbyte_element.key4=KEY_LEFT_Pin,
-                                        .halfbyte_element.key5=KEY_UP_Pin,};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,11 +94,7 @@ void StartDisplayTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-fourBitSequenceStruct received_sequence={.sequence=0};
 uint8_t result;
-uint8_t increment;
-
-
 
 /* USER CODE END 0 */
 
@@ -145,12 +129,6 @@ int main(void)
   MX_LPUART1_UART_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  REVIVE_STRATAGEM.halfbyte_element.key1=KEY_UP_Pin;
-  REVIVE_STRATAGEM.halfbyte_element.key2=KEY_DOWN_Pin;
-  REVIVE_STRATAGEM.halfbyte_element.key3=KEY_RIGHT_Pin;
-  REVIVE_STRATAGEM.halfbyte_element.key4=KEY_LEFT_Pin;
-  REVIVE_STRATAGEM.halfbyte_element.key5=KEY_UP_Pin;
-
   HAL_Delay(500);
   lcd_init();
   HAL_Delay(500);

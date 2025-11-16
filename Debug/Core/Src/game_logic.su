@@ -1,8 +1,8 @@
-../Core/Src/game_logic.c:41:6:PlaceEventInQueue	16	static
-../Core/Src/game_logic.c:51:12:GetLastEvent	16	static
-../Core/Src/game_logic.c:64:6:AppStateProcessor	16	static
-../Core/Src/game_logic.c:95:6:GameProcessor	32	static
-../Core/Src/game_logic.c:168:6:StartTimeout	24	static
-../Core/Src/game_logic.c:186:6:TimeoutProcessor	16	static
-../Core/Src/game_logic.c:195:9:ParseKeysToLcdArrows	16	static
-../Core/Src/game_logic.c:210:6:UpdateLastPressedKey	16	static
+../Core/Src/game_logic.c:45:6:PlaceEventInQueue	16	static
+../Core/Src/game_logic.c:55:12:GetLastEvent	16	static
+../Core/Src/game_logic.c:68:6:AppStateProcessor	16	static
+../Core/Src/game_logic.c:99:6:GameProcessor	32	static
+../Core/Src/game_logic.c:172:6:StartTimeout	24	static
+../Core/Src/game_logic.c:190:6:TimeoutProcessor	16	static
+../Core/Src/game_logic.c:199:9:ParseKeysToLcdArrows	16	static
+../Core/Src/game_logic.c:214:6:UpdateLastPressedKey	16	static
