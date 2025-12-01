@@ -1,8 +1,9 @@
-../Core/Src/game_logic.c:45:6:PlaceEventInQueue	2
-../Core/Src/game_logic.c:55:12:GetLastEvent	3
-../Core/Src/game_logic.c:68:6:AppStateProcessor	8
-../Core/Src/game_logic.c:99:6:GameProcessor	13
-../Core/Src/game_logic.c:172:6:StartTimeout	4
-../Core/Src/game_logic.c:190:6:TimeoutProcessor	4
-../Core/Src/game_logic.c:199:9:ParseKeysToLcdArrows	5
-../Core/Src/game_logic.c:214:6:UpdateLastPressedKey	1
+../Core/Src/game_logic.c:133:6:PlaceEventInQueue	2
+../Core/Src/game_logic.c:143:12:GetLastEvent	3
+../Core/Src/game_logic.c:156:6:AppStateProcessor	10
+../Core/Src/game_logic.c:191:6:GameProcessor	17
+../Core/Src/game_logic.c:282:6:StartTimeout	4
+../Core/Src/game_logic.c:300:6:TimeoutProcessor	4
+../Core/Src/game_logic.c:309:9:ParseKeysToLcdArrows	5
+../Core/Src/game_logic.c:324:9:ParseInvertedKeysToLcdArrows	5
+../Core/Src/game_logic.c:339:6:UpdateLastPressedKey	1

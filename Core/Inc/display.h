@@ -13,6 +13,11 @@
 #define ARROW_LEFT  0x7F  // prefedined symbol code arrow left
 #define ARROW_RIGHT 0x7E  // predefined symbol code arrow right
 
+#define INV_ARROW_UP    0x02  // custom symbol code inv arrow up
+#define INV_ARROW_DOWN  0x03  // custom symbol code inv arrow down
+#define INV_ARROW_LEFT  0x05  // custom symbol code inv arrow left
+#define INV_ARROW_RIGHT 0x04  // custom symbol code inv arrow right
+
 
 #define DISPLAY_ROWS          4
 #define DISPLAY_COLS          20
@@ -38,5 +43,7 @@ void DisplayStartCountDownScreen(uint8_t time_s);
 void DisplayAfterRoundInfo(uint8_t time_left,uint16_t points);
 
 void DisplayFinalRoundInfo(uint16_t points);
+
+void DisplayInGameTimeout(uint8_t time_s);
 #endif /* INC_DISPLAY_H_*/
 

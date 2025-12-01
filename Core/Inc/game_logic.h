@@ -28,6 +28,7 @@ typedef enum{
   CTDOWN_TIMEOUT=2,
   GAME_TIMEOUT=3,
   IDLE_TIMEOUT=4,
+  SW_BLOCK_TIMEOUT=5
 }GameEvents;
 
 typedef struct{
@@ -64,6 +65,8 @@ void StartTimeout(GameEvents TimeoutType);
 void TimeoutProcessor(void);
 
 uint8_t ParseKeysToLcdArrows(uint8_t result);
+
+uint8_t ParseInvertedKeysToLcdArrows(uint8_t result);
 
 void UpdateLastPressedKey(uint8_t last_key);
 #endif /* INC_GAME_LOGIC_H_ */

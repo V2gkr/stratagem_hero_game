@@ -52,9 +52,11 @@ I2C_HandleTypeDef hi2c1;
 
 UART_HandleTypeDef hlpuart1;
 
+RNG_HandleTypeDef hrng;
+
 /* Definitions for GameTask */
 osThreadId_t GameTaskHandle;
-uint32_t GameTaskBuffer[ 128 ];
+uint32_t GameTaskBuffer[ 300 ];
 osStaticThreadDef_t GameTaskControlBlock;
 const osThreadAttr_t GameTask_attributes = {
   .name = "GameTask",
@@ -62,7 +64,7 @@ const osThreadAttr_t GameTask_attributes = {
   .stack_size = sizeof(GameTaskBuffer),
   .cb_mem = &GameTaskControlBlock,
   .cb_size = sizeof(GameTaskControlBlock),
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityHigh1,
 };
 /* Definitions for DisplayTask */
 osThreadId_t DisplayTaskHandle;
@@ -85,6 +87,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_LPUART1_UART_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_RNG_Init(void);
 void StartGameTask(void *argument);
 void StartDisplayTask(void *argument);
 
@@ -128,13 +131,12 @@ int main(void)
   MX_GPIO_Init();
   MX_LPUART1_UART_Init();
   MX_I2C1_Init();
+  MX_RNG_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(500);
   lcd_init();
   HAL_Delay(500);
   DisplayConfigCustomChars();
-  //lcd_clear();
-  lcd_update_buffer((uint8_t*)"stratagem game test", 20, 0);
   lcd_update_screen();
 
   /* USER CODE END 2 */
@@ -156,6 +158,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -206,8 +209,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV6;
@@ -327,6 +331,33 @@ static void MX_LPUART1_UART_Init(void)
   /* USER CODE BEGIN LPUART1_Init 2 */
 
   /* USER CODE END LPUART1_Init 2 */
+
+}
+
+/**
+  * @brief RNG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RNG_Init(void)
+{
+
+  /* USER CODE BEGIN RNG_Init 0 */
+
+  /* USER CODE END RNG_Init 0 */
+
+  /* USER CODE BEGIN RNG_Init 1 */
+
+  /* USER CODE END RNG_Init 1 */
+  hrng.Instance = RNG;
+  hrng.Init.ClockErrorDetection = RNG_CED_ENABLE;
+  if (HAL_RNG_Init(&hrng) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RNG_Init 2 */
+
+  /* USER CODE END RNG_Init 2 */
 
 }
 
