@@ -15,7 +15,7 @@
 #include "stratagems_data.h"
 
 #define TIMEOUTS_COUNT      4
-#define STRATAGEM_PER_GAME  5
+#define INIT_STRATAGEM_NUM  5
 #define STRATAGEM_LIST_SIZE 57
 
 typedef struct{
@@ -23,8 +23,11 @@ typedef struct{
   uint8_t sequence_cursor;
   uint8_t last_pressed_button;
   uint8_t user_score;
+  uint8_t display_full_stratagem_flag;
+  uint8_t sw_unlock_flag;
+  uint8_t round_num;
   fourBitSequenceStruct input;
-  fourBitSequenceStruct stratagems[5];
+  fourBitSequenceStruct stratagems[15]; //not to say that thats vulnerable , but who tf can go to 10 round and 15 stratagems
   //const char * stratagem_names[5];
 }GameDataStruct;
 
@@ -38,8 +41,9 @@ extern RNG_HandleTypeDef hrng;
 GameEvents event_queue[255]={0};
 uint8_t event_tail=0;
 uint8_t event_head=0;
-uint8_t sw_unlock_flag=0;
-uint8_t display_full_stratagem_flag=0;
+//uint8_t sw_unlock_flag=0;
+//uint8_t display_full_stratagem_flag=0;
+//uint8_t round_num;
 GameSubState GameSubStateMachine=START_COUNTDOWN;
 AppStates    AppStateMachine=WAIT_FOR_START;
 GameDataStruct GameData;
@@ -162,6 +166,7 @@ void AppStateProcessor(void){
       DisplayWaitForStartScreen();
       //display smth (press any key to start)
       if(last_event==ANY_BUTTON_PRESSED){
+        GameData.round_num=0;
         //place event GAME_IS_ACTIVE
         AppStateMachine=GAME_IS_ACTIVE;
         StartTimeout(CTDOWN_TIMEOUT);
@@ -176,13 +181,13 @@ void AppStateProcessor(void){
         AppStateMachine=WAIT_FOR_START;
       }
       if(last_event==SW_BLOCK_TIMEOUT){
-        sw_unlock_flag=1;
+        GameData.sw_unlock_flag=1;
       }
-      if(last_event==ANY_BUTTON_PRESSED && sw_unlock_flag){
+      if(last_event==ANY_BUTTON_PRESSED && GameData.sw_unlock_flag){
         StartTimeout(CTDOWN_TIMEOUT);
         GameSubStateMachine=START_COUNTDOWN;
         AppStateMachine=GAME_IS_ACTIVE;
-        sw_unlock_flag=0;
+        GameData.sw_unlock_flag=0;
       }
       break;
   }
@@ -194,27 +199,29 @@ void GameProcessor(GameEvents last_event){
       DisplayStartCountDownScreen(1+(((Timeouts[0]->timespan+Timeouts[0]->start_timestamp-HAL_GetTick()))/1000));
       if(last_event==CTDOWN_TIMEOUT){
         GameSubStateMachine=ACTIVE_ROUND;
-        display_full_stratagem_flag=1;
+        GameData.display_full_stratagem_flag=1;
         StartTimeout(GAME_TIMEOUT);
         GameData.sequence_cursor=0;
         GameData.sequence_array_cursor=0;
+
         //prepare stratagem list
         uint32_t num;
-        for(uint8_t i=0;i<STRATAGEM_PER_GAME;i++){
+        for(uint8_t i=0;i<(INIT_STRATAGEM_NUM+GameData.round_num);i++){
 
           HAL_RNG_GenerateRandomNumber(&hrng, &num);
           num=num%(STRATAGEM_LIST_SIZE-1);
           GameData.stratagems[i].sequence=stratagem_list[num]->sequence;
           //GameData.stratagem_names[i]=stratagem_list[num]->stratagem_name;
         }
+
         lcd_clear_buffer();
       }
       //place event 3..2..1 and display it
       break;
     case ACTIVE_ROUND:
-      if(display_full_stratagem_flag==1){
+      if(GameData.display_full_stratagem_flag==1){
         DisplayActiveGameScreen(GameData.stratagems[GameData.sequence_array_cursor].sequence);
-        display_full_stratagem_flag=0;
+        GameData.display_full_stratagem_flag=0;
       }
       DisplayInGameTimeout(1+(((Timeouts[1]->timespan+Timeouts[1]->start_timestamp-HAL_GetTick()))/1000));
       if(last_event==ANY_BUTTON_PRESSED){
@@ -227,13 +234,14 @@ void GameProcessor(GameEvents last_event){
           GameData.sequence_cursor+=4;
           if(((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)==0x00){
             //single stratagem is complete
-            display_full_stratagem_flag=1;
+            Timeouts[1]->start_timestamp+=1000;//-1sec
+            GameData.display_full_stratagem_flag=1;
             GameData.user_score+=(GameData.sequence_cursor/4);
             GameData.sequence_array_cursor++;   //increment cursor for next stratagem
             GameData.sequence_cursor=0;         //clear cursor of each arrow in sequence
             GameData.input.sequence=0;          //clear previous sequence
             ClearStratagemOnDisplay();
-            if(GameData.sequence_array_cursor==STRATAGEM_PER_GAME){
+            if(GameData.sequence_array_cursor==(INIT_STRATAGEM_NUM+GameData.round_num)){
               GameSubStateMachine=ROUND_COMPLETE; //change state
               DisplayAfterRoundInfo(0,GameData.user_score);            //update lcd
               StartTimeout(IDLE_TIMEOUT);         //
@@ -243,7 +251,7 @@ void GameProcessor(GameEvents last_event){
         }
         else{
           //error in input
-          display_full_stratagem_flag=1;
+          GameData.display_full_stratagem_flag=1;
           GameData.input.sequence=0;
           GameData.sequence_cursor=0;
           ClearStratagemOnDisplay();
@@ -257,6 +265,7 @@ void GameProcessor(GameEvents last_event){
         GameSubStateMachine=START_COUNTDOWN;
         AppStateMachine=GAME_ENDED;
         StartTimeout(SW_BLOCK_TIMEOUT);
+        GameData.round_num=0;
       }
       break;
     case ROUND_COMPLETE:
@@ -265,12 +274,13 @@ void GameProcessor(GameEvents last_event){
         AppStateMachine=WAIT_FOR_START;
       }
       if(last_event==SW_BLOCK_TIMEOUT){
-        sw_unlock_flag=1;
+        GameData.sw_unlock_flag=1;
       }
-      if(last_event==ANY_BUTTON_PRESSED && sw_unlock_flag){
+      if(last_event==ANY_BUTTON_PRESSED && GameData.sw_unlock_flag){
         StartTimeout(CTDOWN_TIMEOUT);
         GameSubStateMachine=START_COUNTDOWN;
-        sw_unlock_flag=0;
+        GameData.round_num++;
+        GameData.sw_unlock_flag=0;
       }
       //wait for button - start countdown , start idle
       break;
