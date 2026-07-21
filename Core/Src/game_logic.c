@@ -7,12 +7,15 @@
 
 #include "game_logic.h"
 #include "display.h"
+// #include "qp.h"
 #include "stddef.h"
 #include "stdint.h"
 #include "stdlib.h"
 #include "lcd.h"
 #include "main.h"
 #include "stratagems_data.h"
+#include "qpc.h"
+
 
 #define TIMEOUTS_COUNT      4
 #define INIT_STRATAGEM_NUM  5
@@ -55,11 +58,6 @@ TimeoutDataStruct IdleTimeout={.timeout_type=IDLE_TIMEOUT,.timespan=20000,.is_ac
 TimeoutDataStruct SwBlockTimeout={.timeout_type=SW_BLOCK_TIMEOUT,.timespan=1000,.is_active=0};
 TimeoutDataStruct * Timeouts[]={&CtdownTimeout,&GameTimeout,&IdleTimeout,&SwBlockTimeout};
 
-fourBitSequenceStruct REVIVE_STRATAGEM={.sequence=0x14281};//up 1 / down 8 / right 2 / left 4 / up 1
-fourBitSequenceStruct RESSUPLY_STRATAGEM={.sequence=0x2188};
-fourBitSequenceStruct LASER_CANNON_STRATAGEM={.sequence=0x41848};
-fourBitSequenceStruct ORBITAL_LASER_STRATAGEM={.sequence=0x82182};//right down up right down
-fourBitSequenceStruct HELLBOMB_STRATAGEM={.sequence=0x81281481};// up down left up down right up down
 
 const stratagem_data _JUMP_PACK_data={.stratagem_name=stratagem_name_lift_850_jump_pack,.sequence=stratagem_code_lift_850_jump_pack};
 const stratagem_data _SUPPLY_PACK_data={.stratagem_name=stratagem_name_b_1_supply_pack,.sequence=stratagem_code_b_1_supply_pack};
@@ -156,6 +154,13 @@ GameEvents GetLastEvent(void){
   else
     return NO_EVENT;
 }
+
+QState App_initial(GameDataStruct * const me,QEvt const * const e);
+QState App_waitForStart(GameDataStruct * const me,QEvt const * const e);
+QState App_gameActive(GameDataStruct * const me,QEvt const * const e);
+QState Game_countdown(GameDataStruct * const me,QEvt const * const e);
+QState Game_active(GameDataStruct * const me,QEvt const * const e);
+QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e);
 
 void AppStateProcessor(void){
   //get last event from queue

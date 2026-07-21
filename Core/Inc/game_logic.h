@@ -8,6 +8,7 @@
 #ifndef INC_GAME_LOGIC_H_
 #define INC_GAME_LOGIC_H_
 
+#include "qp.h"
 #include "stdint.h"
 
 typedef enum{
@@ -22,14 +23,22 @@ typedef enum{
   ROUND_COMPLETE=2
 }GameSubState;
 
-typedef enum{
-  NO_EVENT=0,
-  ANY_BUTTON_PRESSED=1,
-  CTDOWN_TIMEOUT=2,
-  GAME_TIMEOUT=3,
-  IDLE_TIMEOUT=4,
-  SW_BLOCK_TIMEOUT=5
-}GameEvents;
+// typedef enum{
+//   NO_EVENT=0,
+//   ANY_BUTTON_PRESSED=1,
+//   CTDOWN_TIMEOUT=2,
+//   GAME_TIMEOUT=3,
+//   IDLE_TIMEOUT=4,
+//   SW_BLOCK_TIMEOUT=5
+// }GameEvents;
+
+enum GameEventSignals{
+  ANY_BUTTON_PRESSED=Q_USER_SIG,
+  CNTDOWN_TIMEOUT,
+  GAME_TIMEOUT,
+  IDLE_TIMEOUT,
+  SW_BLOCK_TIMEOUT
+};
 
 typedef struct{
   GameEvents timeout_type;
