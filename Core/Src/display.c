@@ -58,7 +58,7 @@ void DisplayActiveGameScreen(uint32_t sequence){
   for(uint8_t i=0;i<=32;i++){
     act_sequence[i]=ParseKeysToLcdArrows((sequence>>(i*4))&0xF);
   }
-  lcd_update_buffer(&act_sequence,8,20+6);
+  lcd_update_buffer(act_sequence,8,20+6);
 }
 
 void DisplayAfterRoundInfo(uint8_t time_left,uint16_t points){

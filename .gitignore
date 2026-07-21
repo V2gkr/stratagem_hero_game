@@ -1,0 +1,11 @@
+build
+mx.scratch
+!.settings
+Debug/
+Drivers/
+*.launch
+Middlewares/
+*.clangd
+*.cmake
+.vscode/
+qpc/
