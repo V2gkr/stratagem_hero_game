@@ -54,7 +54,7 @@ GameSubState GameSubStateMachine=START_COUNTDOWN;
 AppStates    AppStateMachine=WAIT_FOR_START;
 GameDataStruct GameData;
 
-
+uint8_t GameEventQueueBuf[sizeof(QEvt)*10];
 TimeoutDataStruct CtdownTimeout={.timeout_type=CNTDOWN_TIMEOUT,.timespan=3000,.is_active=0};
 TimeoutDataStruct GameTimeout={.timeout_type=GAME_TIMEOUT,.timespan=10000,.is_active=0};
 TimeoutDataStruct IdleTimeout={.timeout_type=IDLE_TIMEOUT,.timespan=20000,.is_active=0};
@@ -329,13 +329,13 @@ QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e){
       break;
     }
     case SW_BLOCK_TIMEOUT:{
-      QTimeEvt_disarm(&me->idle_timeout);
       GameData.sw_unlock_flag=1;
       status=Q_HANDLED();
       break;
     }
     case ANY_BUTTON_PRESSED:{
       if(GameData.sw_unlock_flag){
+        QTimeEvt_disarm(&me->idle_timeout);
         GameData.round_num++;
         GameData.sw_unlock_flag=0;
         status=Q_TRAN(Game_countdown);
