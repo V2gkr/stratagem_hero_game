@@ -34,6 +34,10 @@ typedef struct{
   fourBitSequenceStruct input;
   fourBitSequenceStruct stratagems[15]; //not to say that thats vulnerable , but who tf can go to 10 round and 15 stratagems
   //const char * stratagem_names[5];
+  QTimeEvt countdown_timeout;
+  QTimeEvt game_timeout;
+  QTimeEvt idle_timeout;
+  QTimeEvt sw_block_timeout;
 }GameDataStruct;
 
 typedef struct{
@@ -161,6 +165,13 @@ QState Game_countdown(GameDataStruct * const me,QEvt const * const e);
 QState Game_active(GameDataStruct * const me,QEvt const * const e);
 QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e);
 
+void Game_ctor(GameDataStruct * const me){
+  QActive_ctor(&me->super, (QStateHandler)&App_initial);
+  QTimeEvt_ctorX(&me->countdown_timeout, &me->super, CNTDOWN_TIMEOUT, 0U);
+  QTimeEvt_ctorX(&me->game_timeout, &me->super, GAME_TIMEOUT, 0U);
+  QTimeEvt_ctorX(&me->idle_timeout, &me->super, IDLE_TIMEOUT, 0U);
+  QTimeEvt_ctorX(&me->sw_block_timeout, &me->super, SW_BLOCK_TIMEOUT, 0U);
+}
 
 QState App_waitForStart(GameDataStruct * const me,QEvt const * const e){
   QState status;
@@ -171,7 +182,6 @@ QState App_waitForStart(GameDataStruct * const me,QEvt const * const e){
       break;
     }
     case ANY_BUTTON_PRESSED:{
-      QTimeEvt_armX();
       status=Q_TRAN(Game_countdown);
       break;
     }
@@ -187,7 +197,12 @@ QState App_waitForStart(GameDataStruct * const me,QEvt const * const e){
 QState App_gameEnded(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
-    case GAME_TIMEOUT:{
+    case Q_ENTRY_SIG: {
+      QTimeEvt_armX(&me->idle_timeout, 20000, 0);
+      status=Q_HANDLED();
+      break;
+    }
+    case IDLE_TIMEOUT:{
       status=Q_TRAN(App_waitForStart);
       break;
     }
@@ -211,6 +226,7 @@ QState Game_countdown(GameDataStruct * const me,QEvt const * const e){
         GameData.stratagems[i].sequence=stratagem_list[num]->sequence;
         //GameData.stratagem_names[i]=stratagem_list[num]->stratagem_name;
       }
+      QTimeEvt_armX(&me->countdown_timeout, 3000, 0);
       status = Q_HANDLED();
       break;
     }
@@ -235,7 +251,8 @@ QState Game_active(GameDataStruct * const me,QEvt const * const e){
   switch(e->sig){
     case Q_ENTRY_SIG: {
         //start game timeout
-        StartTimeout(GAME_TIMEOUT);
+        QTimeEvt_armX(&me->game_timeout, 10*1000, 0);
+        //StartTimeout(GAME_TIMEOUT);
         status = Q_HANDLED();
         break;
     }
@@ -262,10 +279,11 @@ QState Game_active(GameDataStruct * const me,QEvt const * const e){
             ClearStratagemOnDisplay();
             if(GameData.sequence_array_cursor==(INIT_STRATAGEM_NUM+GameData.round_num)){
               status=Q_TRAN(Game_roundComplete);
-              GameSubStateMachine=ROUND_COMPLETE; //change state
+              // GameSubStateMachine=ROUND_COMPLETE; //change state
               DisplayAfterRoundInfo(0,GameData.user_score);            //update lcd
               //StartTimeout(IDLE_TIMEOUT);         //
               //StartTimeout(SW_BLOCK_TIMEOUT);
+              break;
             }
           }
         }
@@ -276,6 +294,7 @@ QState Game_active(GameDataStruct * const me,QEvt const * const e){
           GameData.sequence_cursor=0;
           ClearStratagemOnDisplay();
           //clear displayed stratagem
+          
         }
         status=Q_HANDLED();
         
@@ -297,24 +316,33 @@ QState Game_active(GameDataStruct * const me,QEvt const * const e){
 QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
+    case Q_ENTRY_SIG: {
+        //start game timeout
+        QTimeEvt_armX(&me->idle_timeout, 20000, 0);
+        QTimeEvt_armX(&me->sw_block_timeout, 1000, 0);
+        //StartTimeout(GAME_TIMEOUT);
+        status = Q_HANDLED();
+        break;
+    }
     case IDLE_TIMEOUT:{
       status=Q_TRAN(App_waitForStart);
       break;
     }
     case SW_BLOCK_TIMEOUT:{
-      //timeout for user to not activate next round immediately and see results
+      QTimeEvt_disarm(&me->idle_timeout);
       GameData.sw_unlock_flag=1;
       status=Q_HANDLED();
       break;
     }
     case ANY_BUTTON_PRESSED:{
       if(GameData.sw_unlock_flag){
-      //StartTimeout(CNTDOWN_TIMEOUT);
         GameData.round_num++;
         GameData.sw_unlock_flag=0;
         status=Q_TRAN(Game_countdown);
       }
-      status=Q_HANDLED();
+      else 
+        status=Q_HANDLED();
+      break;
     }
     default: {
       status = Q_SUPER(QHsm_top);
