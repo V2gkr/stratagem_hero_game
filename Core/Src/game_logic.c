@@ -109,10 +109,34 @@ const stratagem_data * const stratagem_list[]={&_JUMP_PACK_data,&_SUPPLY_PACK_da
 QState App_initial(GameDataStruct * const me,QEvt const * const e);
 QState App_waitForStart(GameDataStruct * const me,QEvt const * const e);
 QState App_gameEnded(GameDataStruct * const me,QEvt const * const e);
-QState Game_countdown_pause(GameDataStruct * const me,QEvt const * const e);
 QState Game_countdown(GameDataStruct * const me,QEvt const * const e);
 QState Game_active(GameDataStruct * const me,QEvt const * const e);
 QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e);
+
+// Choice point: decide whether to show the next countdown number or
+// start the round. Not a real HSM state - just a guarded transition,
+// called from the events that used to transition into it directly
+// (transitioning from Q_ENTRY_SIG/Q_INIT_SIG is not allowed by QP).
+static QState Game_countdownStep(GameDataStruct * const me){
+  QState status;
+  if(me->countdown_timer>0){
+    DisplayStartCountDownScreen(me->countdown_timer);
+    me->countdown_timer--;
+    status=Q_TRAN(Game_countdown);
+  }
+  else{
+    uint32_t num;
+    for(uint8_t i=0;i<(INIT_STRATAGEM_NUM+GameData.round_num);i++){
+
+      HAL_RNG_GenerateRandomNumber(&hrng, &num);
+      num=num%(STRATAGEM_LIST_SIZE-1);
+      GameData.stratagems[i].sequence=stratagem_list[num]->sequence;
+      //GameData.stratagem_names[i]=stratagem_list[num]->stratagem_name;
+    }
+    status=Q_TRAN(Game_active);
+  }
+  return status;
+}
 
 void Game_ctor(GameDataStruct * const me){
   QActive_ctor(&me->super, (QStateHandler)&App_initial);
@@ -137,8 +161,8 @@ QState App_waitForStart(GameDataStruct * const me,QEvt const * const e){
       break;
     }
     case ANY_BUTTON_PRESSED:{
-      status=Q_TRAN(Game_countdown_pause);
       me->countdown_timer=3;
+      status=Game_countdownStep(me);
       break;
     }
     default: {
@@ -154,6 +178,7 @@ QState App_gameEnded(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
     case Q_ENTRY_SIG: {
+      DisplayFinalRoundInfo(me->user_score);
       QTimeEvt_armX(&me->idle_timeout, 20000, 0);
       status=Q_HANDLED();
       break;
@@ -162,34 +187,9 @@ QState App_gameEnded(GameDataStruct * const me,QEvt const * const e){
       status=Q_TRAN(App_waitForStart);
       break;
     }
-    default: {
-      status = Q_SUPER(QHsm_top);
-      break;
-    }
-  }
-  return status;
-}
-
-QState Game_countdown_pause(GameDataStruct * const me,QEvt const * const e){
-  QState status;
-  switch(e->sig){
-    case Q_ENTRY_SIG: {
-      if(me->countdown_timer>0){
-        DisplayStartCountDownScreen(me->countdown_timer);
-        me->countdown_timer--;
-        status=Q_TRAN(Game_countdown);
-      }
-      else{
-        uint32_t num;
-        for(uint8_t i=0;i<(INIT_STRATAGEM_NUM+GameData.round_num);i++){
-
-          HAL_RNG_GenerateRandomNumber(&hrng, &num);
-          num=num%(STRATAGEM_LIST_SIZE-1);
-          GameData.stratagems[i].sequence=stratagem_list[num]->sequence;
-          //GameData.stratagem_names[i]=stratagem_list[num]->stratagem_name;
-        }
-        status=Q_TRAN(Game_active);
-      }
+    case ANY_BUTTON_PRESSED:{
+      me->countdown_timer=3;
+      status=Game_countdownStep(me);
       break;
     }
     default: {
@@ -199,7 +199,6 @@ QState Game_countdown_pause(GameDataStruct * const me,QEvt const * const e){
   }
   return status;
 }
-
 
 QState Game_countdown(GameDataStruct * const me,QEvt const * const e){
   QState status;
@@ -214,7 +213,7 @@ QState Game_countdown(GameDataStruct * const me,QEvt const * const e){
       GameData.sequence_cursor=0;
       GameData.sequence_array_cursor=0;
       lcd_clear_buffer();
-      status=Q_TRAN(Game_countdown_pause);
+      status=Game_countdownStep(me);
       break;
     }
     default: {
@@ -229,9 +228,20 @@ QState Game_active(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
     case Q_ENTRY_SIG: {
+        if(GameData.display_full_stratagem_flag==1){
+          DisplayActiveGameScreen(GameData.stratagems[GameData.sequence_array_cursor].sequence);
+          GameData.display_full_stratagem_flag=0;
+        }
         //start game timeout
         QTimeEvt_armX(&me->game_timeout, 10*1000, 0);
         //StartTimeout(GAME_TIMEOUT);
+        status = Q_HANDLED();
+        break;
+    }
+    case Q_EXIT_SIG: {
+        // must disarm unconditionally: the round can also end early
+        // (all stratagems done) while the timeout is still armed
+        QTimeEvt_disarm(&me->game_timeout);
         status = Q_HANDLED();
         break;
     }
@@ -312,8 +322,8 @@ QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e){
         QTimeEvt_disarm(&me->idle_timeout);
         GameData.round_num++;
         GameData.sw_unlock_flag=0;
-        status=Q_TRAN(Game_countdown_pause);
         me->countdown_timer=3;
+        status=Game_countdownStep(me);
       }
       else 
         status=Q_HANDLED();

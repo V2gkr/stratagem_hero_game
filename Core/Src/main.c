@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "qpc.h"
 #include "lcd.h"
+#include "stm32g4xx_hal_gpio.h"
 #include "switch.h"
 #include "display.h"
 #include "game_logic.h"
@@ -98,7 +99,7 @@ void StartDisplayTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint32_t GameDataBuffer[128];
+uint32_t GameDataBuffer[200];
 QEvtPtr GameEventQueueBuf[10];
 extern GameDataStruct GameData;
 QActive *AO_GameData =&GameData.super;
@@ -184,7 +185,7 @@ int main(void)
   DisplayTaskHandle = osThreadNew(StartDisplayTask, NULL, &DisplayTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  QACTIVE_START(AO_GameData, 2, GameEventQueueBuf, Q_DIM(GameEventQueueBuf), GameDataBuffer, 128, (void*)0);
+  QACTIVE_START(AO_GameData, 2, GameEventQueueBuf, Q_DIM(GameEventQueueBuf), GameDataBuffer, sizeof(GameDataBuffer), (void*)0);
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -440,6 +441,7 @@ void StartGameTask(void *argument)
       static QEvt const any_button_pressedEvt=QEVT_INITIALIZER(ANY_BUTTON_PRESSED);
       QACTIVE_POST(AO_GameData,&any_button_pressedEvt,0);
       UpdateLastPressedKey(result);
+      HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
     }
     osDelay(2);
   }
