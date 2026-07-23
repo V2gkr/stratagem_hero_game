@@ -11,27 +11,6 @@
 #include "qpc.h"
 #include "stdint.h"
 
-typedef enum{
-  WAIT_FOR_START=0,
-  GAME_IS_ACTIVE=1,
-  GAME_ENDED=2
-}AppStates;
-
-typedef enum{
-  START_COUNTDOWN=0,
-  ACTIVE_ROUND=1,
-  ROUND_COMPLETE=2
-}GameSubState;
-
-typedef enum{
-  NO_EVENT=0,
-//   ANY_BUTTON_PRESSED=1,
-//   CTDOWN_TIMEOUT=2,
-//   GAME_TIMEOUT=3,
-//   IDLE_TIMEOUT=4,
-//   SW_BLOCK_TIMEOUT=5
-}GameEvents;
-
 enum GameEventSignals{
   ANY_BUTTON_PRESSED=Q_USER_SIG,
   CNTDOWN_TIMEOUT,
@@ -40,13 +19,6 @@ enum GameEventSignals{
   SW_BLOCK_TIMEOUT,
   WRONG_SEQUENCE
 };
-
-typedef struct{
-  GameEvents timeout_type;
-  uint8_t is_active;
-  uint32_t start_timestamp;
-  const uint32_t timespan;
-}TimeoutDataStruct;
 
 typedef union{
   uint32_t sequence;
@@ -62,21 +34,30 @@ typedef union{
   }halfbyte_element;
 }fourBitSequenceStruct;
 
-void PlaceEventInQueue(GameEvents event);
-
-GameEvents GetLastEvent(void);
-
-void AppStateProcessor(void);
-
-void GameProcessor(GameEvents last_event);
-
-void StartTimeout(GameEvents TimeoutType);
-
-void TimeoutProcessor(void);
+typedef struct{
+  QActive super;
+  uint8_t sequence_array_cursor;
+  uint8_t sequence_cursor;
+  uint8_t last_pressed_button;
+  uint8_t user_score;
+  uint8_t display_full_stratagem_flag;
+  uint8_t sw_unlock_flag;
+  uint8_t round_num;
+  uint8_t countdown_timer;
+  fourBitSequenceStruct input;
+  fourBitSequenceStruct stratagems[15]; //not to say that thats vulnerable , but who tf can go to 10 round and 15 stratagems
+  //const char * stratagem_names[5];
+  QTimeEvt countdown_timeout;
+  QTimeEvt game_timeout;
+  QTimeEvt idle_timeout;
+  QTimeEvt sw_block_timeout;
+}GameDataStruct;
 
 uint8_t ParseKeysToLcdArrows(uint8_t result);
 
 uint8_t ParseInvertedKeysToLcdArrows(uint8_t result);
 
 void UpdateLastPressedKey(uint8_t last_key);
+
+void Game_ctor(GameDataStruct * const me);
 #endif /* INC_GAME_LOGIC_H_ */
