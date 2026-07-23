@@ -99,13 +99,13 @@ void StartDisplayTask(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 uint32_t GameDataBuffer[128];
-QEvtPtr const GameEventQueueBuf[10];
+QEvtPtr GameEventQueueBuf[10];
 extern GameDataStruct GameData;
 QActive *AO_GameData =&GameData.super;
 uint8_t result;
 Q_NORETURN Q_onError(char const * const module, int_t const id) {
   (void)module;
-  (Void)id;
+  (void)id;
   // сюда попадает framework при нарушении инварианта (assert), например
   // если Game_active получит сигнал без default: и вернёт мусор,
   // или если что-то не так со структурой AO
