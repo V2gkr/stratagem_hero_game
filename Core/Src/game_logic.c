@@ -181,8 +181,8 @@ QState Game_countdown_pause(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
     case Q_ENTRY_SIG: {
-      DisplayStartCountDownScreen(me->countdown_timer);
-      if(me->countdown_timer>=0){
+      if(me->countdown_timer>0){
+        DisplayStartCountDownScreen(me->countdown_timer);
         me->countdown_timer--;
         status=Q_TRAN(Game_countdown);
       }
@@ -338,137 +338,6 @@ QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e){
   }
   return status;
 }
-
-// void AppStateProcessor(void){
-//   //get last event from queue
-//   GameEvents last_event=GetLastEvent();
-//   switch(AppStateMachine){
-//     case WAIT_FOR_START:
-//       //check if event is any
-//       DisplayWaitForStartScreen();
-//       //display smth (press any key to start)
-//       if(last_event==ANY_BUTTON_PRESSED){
-//         GameData.round_num=0;
-//         //place event GAME_IS_ACTIVE
-//         AppStateMachine=GAME_IS_ACTIVE;
-//         StartTimeout(CNTDOWN_TIMEOUT);
-//       }
-//       break;
-//     case GAME_IS_ACTIVE:
-//       GameProcessor(last_event);
-//       // GameProcessor and
-//       break;
-//     case GAME_ENDED:
-//       if(last_event==IDLE_TIMEOUT){
-//         AppStateMachine=WAIT_FOR_START;
-//       }
-//       if(last_event==SW_BLOCK_TIMEOUT){
-//         GameData.sw_unlock_flag=1;
-//       }
-//       if(last_event==ANY_BUTTON_PRESSED && GameData.sw_unlock_flag){
-//         StartTimeout(CNTDOWN_TIMEOUT);
-//         GameSubStateMachine=START_COUNTDOWN;
-//         AppStateMachine=GAME_IS_ACTIVE;
-//         GameData.sw_unlock_flag=0;
-//       }
-//       break;
-//   }
-// }
-
-// void GameProcessor(GameEvents last_event){
-//   switch(GameSubStateMachine){
-//     case START_COUNTDOWN:
-//       DisplayStartCountDownScreen(1+(((Timeouts[0]->timespan+Timeouts[0]->start_timestamp-HAL_GetTick()))/1000));
-//       if(last_event==CNTDOWN_TIMEOUT){
-//         GameSubStateMachine=ACTIVE_ROUND;
-//         GameData.display_full_stratagem_flag=1;
-//         StartTimeout(GAME_TIMEOUT);
-//         GameData.sequence_cursor=0;
-//         GameData.sequence_array_cursor=0;
-
-//         //prepare stratagem list
-//         uint32_t num;
-//         for(uint8_t i=0;i<(INIT_STRATAGEM_NUM+GameData.round_num);i++){
-
-//           HAL_RNG_GenerateRandomNumber(&hrng, &num);
-//           num=num%(STRATAGEM_LIST_SIZE-1);
-//           GameData.stratagems[i].sequence=stratagem_list[num]->sequence;
-//           //GameData.stratagem_names[i]=stratagem_list[num]->stratagem_name;
-//         }
-
-//         lcd_clear_buffer();
-//       }
-//       //place event 3..2..1 and display it
-//       break;
-//     case ACTIVE_ROUND:
-//       if(GameData.display_full_stratagem_flag==1){
-//         DisplayActiveGameScreen(GameData.stratagems[GameData.sequence_array_cursor].sequence);
-//         GameData.display_full_stratagem_flag=0;
-//       }
-//       DisplayInGameTimeout(1+(((Timeouts[1]->timespan+Timeouts[1]->start_timestamp-HAL_GetTick()))/1000));
-//       if(last_event==ANY_BUTTON_PRESSED){
-//         //uint8_t result=0;//0x1,0x2,0x4,0x8 only
-//         if(GameData.last_pressed_button==((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)){
-//           //update stratagem
-//           uint8_t new_arrow=ParseInvertedKeysToLcdArrows(GameData.last_pressed_button);
-//           DisplayNextSequenceArrow(new_arrow,GameData.sequence_cursor/4);
-//           GameData.input.sequence=new_arrow<<GameData.sequence_cursor;
-//           GameData.sequence_cursor+=4;
-//           if(((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)==0x00){
-//             //single stratagem is complete
-//             Timeouts[1]->start_timestamp+=1000;//-1sec
-//             GameData.display_full_stratagem_flag=1;
-//             GameData.user_score+=(GameData.sequence_cursor/4);
-//             GameData.sequence_array_cursor++;   //increment cursor for next stratagem
-//             GameData.sequence_cursor=0;         //clear cursor of each arrow in sequence
-//             GameData.input.sequence=0;          //clear previous sequence
-//             ClearStratagemOnDisplay();
-//             if(GameData.sequence_array_cursor==(INIT_STRATAGEM_NUM+GameData.round_num)){
-//               GameSubStateMachine=ROUND_COMPLETE; //change state
-//               DisplayAfterRoundInfo(0,GameData.user_score);            //update lcd
-//               StartTimeout(IDLE_TIMEOUT);         //
-//               StartTimeout(SW_BLOCK_TIMEOUT);
-//             }
-//           }
-//         }
-//         else{
-//           //error in input
-//           GameData.display_full_stratagem_flag=1;
-//           GameData.input.sequence=0;
-//           GameData.sequence_cursor=0;
-//           ClearStratagemOnDisplay();
-//           //clear displayed stratagem
-//         }
-//       }
-//       if(last_event==GAME_TIMEOUT){
-//         StartTimeout(IDLE_TIMEOUT);
-//         DisplayFinalRoundInfo(GameData.user_score);
-//         GameData.user_score=0;
-//         GameSubStateMachine=START_COUNTDOWN;
-//         AppStateMachine=GAME_ENDED;
-//         StartTimeout(SW_BLOCK_TIMEOUT);
-//         GameData.round_num=0;
-//       }
-//       break;
-//     case ROUND_COMPLETE:
-//       if(last_event==IDLE_TIMEOUT){
-//         GameSubStateMachine=START_COUNTDOWN;
-//         AppStateMachine=WAIT_FOR_START;
-//       }
-//       if(last_event==SW_BLOCK_TIMEOUT){
-//         GameData.sw_unlock_flag=1;
-//       }
-//       if(last_event==ANY_BUTTON_PRESSED && GameData.sw_unlock_flag){
-//         StartTimeout(CNTDOWN_TIMEOUT);
-//         GameSubStateMachine=START_COUNTDOWN;
-//         GameData.round_num++;
-//         GameData.sw_unlock_flag=0;
-//       }
-//       //wait for button - start countdown , start idle
-//       break;
-//   }
-
-// }
 
 
 uint8_t ParseKeysToLcdArrows(uint8_t result){
