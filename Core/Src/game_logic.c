@@ -7,8 +7,6 @@
 
 #include "game_logic.h"
 #include "display.h"
-// #include "qp.h"
-#include "qp.h"
 #include "stddef.h"
 #include "stdint.h"
 #include "stdlib.h"
@@ -18,7 +16,7 @@
 #include "qpc.h"
 
 
-#define TIMEOUTS_COUNT      4
+
 #define INIT_STRATAGEM_NUM  5
 #define STRATAGEM_LIST_SIZE 57
 
@@ -28,12 +26,7 @@ typedef struct{
   const char * stratagem_name;
   uint32_t sequence;
 }stratagem_data;
-
-
 extern RNG_HandleTypeDef hrng;
-uint8_t event_tail=0;
-uint8_t event_head=0;
-
 GameDataStruct GameData;
 
 
@@ -256,7 +249,6 @@ QState Game_active(GameDataStruct * const me,QEvt const * const e){
           GameData.sequence_cursor+=4;
           if(((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)==0x00){
             //single stratagem is complete
-            // Timeouts[1]->start_timestamp+=1000;//-1sec
             QTimeEvtCtr remaining=QTimeEvt_getCtr(&me->game_timeout);
             QTimeEvt_rearm(&me->game_timeout, remaining+1000);
             GameData.display_full_stratagem_flag=1;
@@ -267,10 +259,6 @@ QState Game_active(GameDataStruct * const me,QEvt const * const e){
             ClearStratagemOnDisplay();
             if(GameData.sequence_array_cursor==(INIT_STRATAGEM_NUM+GameData.round_num)){
               status=Q_TRAN(Game_roundComplete);
-              // GameSubStateMachine=ROUND_COMPLETE; //change state
-              DisplayAfterRoundInfo(0,GameData.user_score);            //update lcd
-              //StartTimeout(IDLE_TIMEOUT);         //
-              //StartTimeout(SW_BLOCK_TIMEOUT);
               break;
             }
           }
@@ -285,7 +273,6 @@ QState Game_active(GameDataStruct * const me,QEvt const * const e){
           
         }
         status=Q_HANDLED();
-        
       break;
     }
     case GAME_TIMEOUT:{
@@ -305,10 +292,11 @@ QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
     case Q_ENTRY_SIG: {
-        QTimeEvt_armX(&me->idle_timeout, 20000, 0);
-        QTimeEvt_armX(&me->sw_block_timeout, 1000, 0);
-        status = Q_HANDLED();
-        break;
+      DisplayAfterRoundInfo(0,GameData.user_score);
+      QTimeEvt_armX(&me->idle_timeout, 20000, 0);
+      QTimeEvt_armX(&me->sw_block_timeout, 1000, 0);
+      status = Q_HANDLED();
+      break;
     }
     case IDLE_TIMEOUT:{
       status=Q_TRAN(App_waitForStart);

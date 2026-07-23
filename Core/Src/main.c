@@ -104,6 +104,8 @@ extern GameDataStruct GameData;
 QActive *AO_GameData =&GameData.super;
 uint8_t result;
 Q_NORETURN Q_onError(char const * const module, int_t const id) {
+  (void)module;
+  (Void)id;
   // сюда попадает framework при нарушении инварианта (assert), например
   // если Game_active получит сигнал без default: и вернёт мусор,
   // или если что-то не так со структурой AO
@@ -437,10 +439,8 @@ void StartGameTask(void *argument)
       // uint8_t new_arrow=ParseKeysToLcdArrows(result);
       static QEvt const any_button_pressedEvt=QEVT_INITIALIZER(ANY_BUTTON_PRESSED);
       QACTIVE_POST(AO_GameData,&any_button_pressedEvt,0);
-      //PlaceEventInQueue(ANY_BUTTON_PRESSED);
       UpdateLastPressedKey(result);
     }
-    //AppStateProcessor();
     osDelay(2);
   }
   /* USER CODE END 5 */
