@@ -21,6 +21,7 @@
 #include "main.h"
 #include "stm32g4xx_it.h"
 #include "FreeRTOS.h"
+#include "qp_port.h"
 #include "task.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -172,7 +173,16 @@ void SysTick_Handler(void)
   }
 #endif /* INCLUDE_xTaskGetSchedulerState */
   /* USER CODE BEGIN SysTick_IRQn 1 */
-  TimeoutProcessor();
+#if (INCLUDE_xTaskGetSchedulerState == 1 )
+  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+  {
+#endif
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    QF_TICK_FROM_ISR(&xHigherPriorityTaskWoken, 0);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#if (INCLUDE_xTaskGetSchedulerState == 1 )
+  }
+#endif
   /* USER CODE END SysTick_IRQn 1 */
 }
 

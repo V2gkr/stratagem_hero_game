@@ -22,7 +22,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "qpc.h"
 #include "lcd.h"
+#include "stm32g4xx_hal_gpio.h"
 #include "switch.h"
 #include "display.h"
 #include "game_logic.h"
@@ -97,8 +99,22 @@ void StartDisplayTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint32_t GameDataBuffer[200];
+QEvtPtr GameEventQueueBuf[10];
+extern GameDataStruct GameData;
+QActive *AO_GameData =&GameData.super;
 uint8_t result;
-
+Q_NORETURN Q_onError(char const * const module, int_t const id) {
+  (void)module;
+  (void)id;
+  // сюда попадает framework при нарушении инварианта (assert), например
+  // если Game_active получит сигнал без default: и вернёт мусор,
+  // или если что-то не так со структурой AO
+  __disable_irq();
+  // можно мигнуть светодиодом / записать module+id во флеш для отладки
+  for (;;) {
+  }
+}
 /* USER CODE END 0 */
 
 /**
@@ -138,7 +154,7 @@ int main(void)
   HAL_Delay(500);
   DisplayConfigCustomChars();
   lcd_update_screen();
-
+  Game_ctor(&GameData);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -169,6 +185,7 @@ int main(void)
   DisplayTaskHandle = osThreadNew(StartDisplayTask, NULL, &DisplayTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
+  QACTIVE_START(AO_GameData, 2, GameEventQueueBuf, Q_DIM(GameEventQueueBuf), GameDataBuffer, sizeof(GameDataBuffer), (void*)0);
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -414,16 +431,18 @@ static void MX_GPIO_Init(void)
 void StartGameTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  (void)argument;
   /* Infinite loop */
   for(;;)
   {
     result=GetKeyStates();
     if(result!=0){
-      //uint8_t new_arrow=ParseKeysToLcdArrows(result);
-      PlaceEventInQueue(ANY_BUTTON_PRESSED);
+      // uint8_t new_arrow=ParseKeysToLcdArrows(result);
+      static QEvt const any_button_pressedEvt=QEVT_INITIALIZER(ANY_BUTTON_PRESSED);
+      QACTIVE_POST(AO_GameData,&any_button_pressedEvt,0);
       UpdateLastPressedKey(result);
+      HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
     }
-    AppStateProcessor();
     osDelay(2);
   }
   /* USER CODE END 5 */
@@ -439,6 +458,7 @@ void StartGameTask(void *argument)
 void StartDisplayTask(void *argument)
 {
   /* USER CODE BEGIN StartDisplayTask */
+  (void)argument;
   /* Infinite loop */
   for(;;)
   {
@@ -462,7 +482,8 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-#ifdef USE_FULL_ASSERT
+
+#ifdef  USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
