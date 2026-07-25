@@ -7,6 +7,7 @@
 
 #include "game_logic.h"
 #include "display.h"
+#include "qp.h"
 #include "stddef.h"
 #include "stdint.h"
 #include "stdlib.h"
@@ -29,7 +30,7 @@ typedef struct{
 extern RNG_HandleTypeDef hrng;
 GameDataStruct GameData;
 
-
+extern QActive *AO_GameData;
 
 const stratagem_data _JUMP_PACK_data={.stratagem_name=stratagem_name_lift_850_jump_pack,.sequence=stratagem_code_lift_850_jump_pack};
 const stratagem_data _SUPPLY_PACK_data={.stratagem_name=stratagem_name_b_1_supply_pack,.sequence=stratagem_code_b_1_supply_pack};
@@ -107,7 +108,10 @@ const stratagem_data * const stratagem_list[]={&_JUMP_PACK_data,&_SUPPLY_PACK_da
 
 
 QState App_initial(GameDataStruct * const me,QEvt const * const e);
-QState App_waitForStart(GameDataStruct * const me,QEvt const * const e);
+QState App_idle(GameDataStruct * const me,QEvt const * const e); //former wait for start
+// QState App_waitForStart(GameDataStruct * const me,QEvt const * const e);//deprecated
+QState Game_notActive(GameDataStruct * const me,QEvt const * const e);//new hierarchical state for all state when game is not active
+QState Game_summary(GameDataStruct * const me,QEvt const * const e);//new state for final round/game info
 QState App_gameEnded(GameDataStruct * const me,QEvt const * const e);
 QState Game_countdown(GameDataStruct * const me,QEvt const * const e);
 QState Game_active(GameDataStruct * const me,QEvt const * const e);
@@ -149,10 +153,25 @@ void Game_ctor(GameDataStruct * const me){
 QState App_initial(GameDataStruct * const me, QEvt const * const e){
   Q_UNUSED_PAR(e);
   // тут же можно проинициализировать поля GameData, если нужно
-  return Q_TRAN(App_waitForStart);
+  return Q_TRAN(App_idle);
 }
 
-QState App_waitForStart(GameDataStruct * const me,QEvt const * const e){
+QState Game_summary(GameDataStruct * const me,QEvt const * const e){
+  QState status;
+  switch(e->sig){
+    case IDLE_TIMEOUT: {
+      status = Q_TRAN(App_idle);
+      break;
+    }
+    default:{/* game is not active ,only button press processing*/
+      status = Q_SUPER(Game_notActive);
+    }
+  }
+  return status;
+}
+
+//this state handles only a welcome screen for user to start a game , previous button press is moved to upper state
+QState App_idle(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
     case Q_ENTRY_SIG: {
@@ -160,7 +179,22 @@ QState App_waitForStart(GameDataStruct * const me,QEvt const * const e){
       status = Q_HANDLED();
       break;
     }
+    default:{/* game is not active ,only button press processing*/
+      status = Q_SUPER(Game_notActive);
+    }
+  }
+  return status;
+}
+
+//this state only handles transition to game , since previously countdown was started in 3 different states
+QState Game_notActive(GameDataStruct * const me,QEvt const * const e){
+  QState status;
+  switch(e->sig){
     case ANY_BUTTON_PRESSED:{
+      QTimeEvt_disarm(&me->idle_timeout);
+      //idle timeout is armed when game is completed and affects game ended / round complete states , 
+      // the only possible way out from those states is timeout and button pressed 
+      // hence the only place where this timeout should be disarmed
       me->countdown_timer=3;
       status=Game_countdownStep(me);
       break;
@@ -170,7 +204,7 @@ QState App_waitForStart(GameDataStruct * const me,QEvt const * const e){
       break;
     }
   }
-  return status;
+  return status;  
 }
 
 
@@ -178,23 +212,16 @@ QState App_gameEnded(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
     case Q_ENTRY_SIG: {
+      GameData.round_num=0;
       DisplayFinalRoundInfo(me->user_score);
-      QTimeEvt_armX(&me->idle_timeout, 20000, 0);
       status=Q_HANDLED();
       break;
     }
-    case IDLE_TIMEOUT:{
-      status=Q_TRAN(App_waitForStart);
-      break;
-    }
-    case ANY_BUTTON_PRESSED:{
-      me->countdown_timer=3;
-      status=Game_countdownStep(me);
-      break;
-    }
-    default: {
-      status = Q_SUPER(QHsm_top);
-      break;
+    //default is making a transition to summary state , 
+    // both game ended and round completed states displaying its own similar data, 
+    // but their timeouts always move to idle
+    default:{
+      status = Q_SUPER(Game_summary);
     }
   }
   return status;
@@ -209,7 +236,6 @@ QState Game_countdown(GameDataStruct * const me,QEvt const * const e){
       break;
     }
     case CNTDOWN_TIMEOUT:{
-      GameData.display_full_stratagem_flag=1;
       GameData.sequence_cursor=0;
       GameData.sequence_array_cursor=0;
       lcd_clear_buffer();
@@ -228,66 +254,74 @@ QState Game_active(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
     case Q_ENTRY_SIG: {
-        if(GameData.display_full_stratagem_flag==1){
-          DisplayActiveGameScreen(GameData.stratagems[GameData.sequence_array_cursor].sequence);
-          GameData.display_full_stratagem_flag=0;
-        }
-        //start game timeout
-        QTimeEvt_armX(&me->game_timeout, 10*1000, 0);
-        //StartTimeout(GAME_TIMEOUT);
-        status = Q_HANDLED();
-        break;
-    }
-    case Q_EXIT_SIG: {
-        // must disarm unconditionally: the round can also end early
-        // (all stratagems done) while the timeout is still armed
-        QTimeEvt_disarm(&me->game_timeout);
-        status = Q_HANDLED();
-        break;
+      DisplayActiveGameScreen(GameData.stratagems[GameData.sequence_array_cursor].sequence);
+      //start game timeout
+      QTimeEvt_armX(&me->game_timeout, 10*1000, 0);
+      //StartTimeout(GAME_TIMEOUT);
+      status = Q_HANDLED();
+      break;
     }
     case ANY_BUTTON_PRESSED:{
-        //this can also be a event driven ?
-        if(GameData.display_full_stratagem_flag==1){
-          DisplayActiveGameScreen(GameData.stratagems[GameData.sequence_array_cursor].sequence);
-          GameData.display_full_stratagem_flag=0;
-        }
-        if(GameData.last_pressed_button==((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)){
-          //update stratagem
-          uint8_t new_arrow=ParseInvertedKeysToLcdArrows(GameData.last_pressed_button);
-          DisplayNextSequenceArrow(new_arrow,GameData.sequence_cursor/4);
-          GameData.input.sequence=new_arrow<<GameData.sequence_cursor;
-          GameData.sequence_cursor+=4;
-          if(((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)==0x00){
-            //single stratagem is complete
-            QTimeEvtCtr remaining=QTimeEvt_getCtr(&me->game_timeout);
-            QTimeEvt_rearm(&me->game_timeout, remaining+1000);
-            GameData.display_full_stratagem_flag=1;
-            GameData.user_score+=(GameData.sequence_cursor/4);
-            GameData.sequence_array_cursor++;   //increment cursor for next stratagem
-            GameData.sequence_cursor=0;         //clear cursor of each arrow in sequence
-            GameData.input.sequence=0;          //clear previous sequence
-            ClearStratagemOnDisplay();
-            if(GameData.sequence_array_cursor==(INIT_STRATAGEM_NUM+GameData.round_num)){
-              status=Q_TRAN(Game_roundComplete);
-              break;
-            }
-          }
-        }
-        else{
-          //error in input (i think this may be a good event for this state to process in the next iteration)
-          GameData.display_full_stratagem_flag=1;
-          GameData.input.sequence=0;
-          GameData.sequence_cursor=0;
-          ClearStratagemOnDisplay();
-          //clear displayed stratagem
-          
-        }
+      if(GameData.last_pressed_button!=((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)){
+        //error in input (i think this may be a good event for this state to process in the next iteration)
+        static QEvt const wrong_seq_event=QEVT_INITIALIZER(WRONG_SEQUENCE);
+        QACTIVE_POST(AO_GameData,&wrong_seq_event,0);
         status=Q_HANDLED();
+        break;
+      }
+      //update stratagem
+      uint8_t new_arrow=ParseInvertedKeysToLcdArrows(GameData.last_pressed_button);
+      DisplayNextSequenceArrow(new_arrow,GameData.sequence_cursor/4);
+      GameData.input.sequence=new_arrow<<GameData.sequence_cursor;
+      GameData.sequence_cursor+=4;
+      if(((GameData.stratagems[GameData.sequence_array_cursor].sequence>>GameData.sequence_cursor)&0xF)==0x00){
+        //single stratagem is complete
+        static QEvt const sequence_completed=QEVT_INITIALIZER(SEQUENCE_COMPLETED);
+        QACTIVE_POST(AO_GameData,&sequence_completed,0);
+        QTimeEvtCtr remaining=QTimeEvt_getCtr(&me->game_timeout);
+        QTimeEvt_rearm(&me->game_timeout, remaining+1000);
+      }
+      status=Q_HANDLED();
+      break;
+    }
+    case WRONG_SEQUENCE:{
+      GameData.input.sequence=0;
+      GameData.sequence_cursor=0;
+      //ClearStratagemOnDisplay();
+      DisplayActiveGameScreen(GameData.stratagems[GameData.sequence_array_cursor].sequence);
+
+      status=Q_HANDLED();
+      break;
+    }
+    case SEQUENCE_COMPLETED:{
+      GameData.user_score+=(GameData.sequence_cursor/4);
+      GameData.sequence_array_cursor++;   //increment cursor for next stratagem
+      GameData.sequence_cursor=0;         //clear cursor of each arrow in sequence
+      GameData.input.sequence=0;          //clear previous sequence
+      //ClearStratagemOnDisplay();
+      DisplayActiveGameScreen(GameData.stratagems[GameData.sequence_array_cursor].sequence);
+      if(GameData.sequence_array_cursor==(INIT_STRATAGEM_NUM+GameData.round_num)){
+        static QEvt const all_sequences_completed=QEVT_INITIALIZER(ALL_SEQUENCE_COMPLETED);
+        QACTIVE_POST(AO_GameData,&all_sequences_completed,0);
+      }
+      status=Q_HANDLED();
+      break;
+    }
+    case ALL_SEQUENCE_COMPLETED:{
+      status=Q_TRAN(Game_roundComplete);
       break;
     }
     case GAME_TIMEOUT:{
-      GameData.round_num=0;
       status=Q_TRAN(App_gameEnded);
+      break;
+    }
+    case Q_EXIT_SIG:{
+      // must disarm unconditionally: the round can also end early
+      // (all stratagems done) while the timeout is still armed
+      QTimeEvt_disarm(&me->game_timeout);
+      //exit is possible only for round complete and game ended -> both are using idle timeout
+      QTimeEvt_armX(&me->idle_timeout, 20000, 0);
+      status = Q_HANDLED();
       break;
     }
     default: {
@@ -302,14 +336,10 @@ QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e){
   QState status;
   switch(e->sig){
     case Q_ENTRY_SIG: {
+      GameData.round_num++;
       DisplayAfterRoundInfo(0,GameData.user_score);
-      QTimeEvt_armX(&me->idle_timeout, 20000, 0);
       QTimeEvt_armX(&me->sw_block_timeout, 1000, 0);
       status = Q_HANDLED();
-      break;
-    }
-    case IDLE_TIMEOUT:{
-      status=Q_TRAN(App_waitForStart);
       break;
     }
     case SW_BLOCK_TIMEOUT:{
@@ -319,18 +349,16 @@ QState Game_roundComplete(GameDataStruct * const me,QEvt const * const e){
     }
     case ANY_BUTTON_PRESSED:{
       if(GameData.sw_unlock_flag){
-        QTimeEvt_disarm(&me->idle_timeout);
-        GameData.round_num++;
+        //does this transition here will change state to game summary which moves button pressed event to Game not active state?
+        status = Q_SUPER(Game_summary);
         GameData.sw_unlock_flag=0;
-        me->countdown_timer=3;
-        status=Game_countdownStep(me);
       }
       else 
         status=Q_HANDLED();
       break;
     }
     default: {
-      status = Q_SUPER(QHsm_top);
+      status = Q_SUPER(Game_summary);
       break;
     }
   }

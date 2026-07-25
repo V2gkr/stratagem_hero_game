@@ -17,7 +17,9 @@ enum GameEventSignals{
   GAME_TIMEOUT,
   IDLE_TIMEOUT,
   SW_BLOCK_TIMEOUT,
-  WRONG_SEQUENCE
+  WRONG_SEQUENCE,
+  SEQUENCE_COMPLETED,
+  ALL_SEQUENCE_COMPLETED
 };
 
 typedef union{
@@ -40,7 +42,6 @@ typedef struct{
   uint8_t sequence_cursor;
   uint8_t last_pressed_button;
   uint8_t user_score;
-  uint8_t display_full_stratagem_flag;
   uint8_t sw_unlock_flag;
   uint8_t round_num;
   uint8_t countdown_timer;
